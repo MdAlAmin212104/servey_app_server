@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -68,9 +68,40 @@ async function run() {
           status: 'publish',
           timestamp : formattedDeadline,
         }
-        console.log(surveyQuestion);
         const result = await surveyCollections.insertOne(surveyQuestion);
         res.send(result);
+    })
+
+    app.get('/survey/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await surveyCollections.findOne(query);
+      res.send(result);
+    })
+
+    app.delete("/survey/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await surveyCollections.deleteOne(query);
+      res.send(result);
+    });
+
+
+    app.patch("/survey/:id", async (req, res) =>{
+      const id = req.params.id;
+      const survey = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          title : survey.title,
+          category: survey.category, 
+          question: survey.question, 
+          date: survey.date, 
+          desc: survey.desc,
+        },
+      }
+      const result = await surveyCollections.updateOne(filter, updateDoc);
+      res.send(result);
     })
 
 
