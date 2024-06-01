@@ -50,20 +50,28 @@ async function run() {
     })
 
     app.get('/survey', async (req, res) => {
-        const result = await surveyCollections.find().toArray();
+        const email = req.query.email;
+        const query = { surveyEmail : email };
+        const result = await surveyCollections.find(query).toArray();
         res.send(result);
     })
 
     app.post('/survey', async (req, res) => {
         const information = req.body;
-        const result = await surveyCollections.insertOne(information);
+        const PresentDate = new Date().getDate();
+        const month = (new Date().getMonth()+1);
+        const year = new Date().getFullYear();
+        let timestamp =`${year}-${month}-${PresentDate}`
+        const formattedDeadline = timestamp.split('-').map(part => part.padStart(2, '0')).join('-');
+        const surveyQuestion = {
+          ...information,
+          status: 'publish',
+          timestamp : formattedDeadline,
+        }
+        console.log(surveyQuestion);
+        const result = await surveyCollections.insertOne(surveyQuestion);
         res.send(result);
     })
-
-
-
-
-
 
 
 
