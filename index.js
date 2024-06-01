@@ -33,8 +33,12 @@ async function run() {
 
 
     const userCollections = client.db('survey').collection('users')
+    const surveyCollections = client.db('survey').collection('surveyList')
 
-
+    app.get('/user', async (req, res) => {
+        const users = await userCollections.find({}).toArray();
+        res.send(users);
+    })
 
     app.post('/user', async (req, res)=>{
         const user = req.body;
@@ -42,6 +46,17 @@ async function run() {
         const isExist = await userCollections.findOne(query);
         if (isExist) return res.send(isExist);
         const result = await userCollections.insertOne(user);
+        res.send(result);
+    })
+
+    app.get('/survey', async (req, res) => {
+        const result = await surveyCollections.find().toArray();
+        res.send(result);
+    })
+
+    app.post('/survey', async (req, res) => {
+        const information = req.body;
+        const result = await surveyCollections.insertOne(information);
         res.send(result);
     })
 
