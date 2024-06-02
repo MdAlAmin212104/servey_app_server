@@ -138,6 +138,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/users', async (req, res) => {
+      const users = await userCollections.find().toArray();
+      res.send(users);
+    })
+
+    app.get("/user/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollections.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === "admin";
+      }
+      res.send({ admin });
+    });
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
