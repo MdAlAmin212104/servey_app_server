@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -29,6 +30,7 @@ async function run() {
 
     const userCollections = client.db("survey").collection("users");
     const surveyCollections = client.db("survey").collection("surveyList");
+    const paymentCollections = client.db("survey").collection("payments");
 
     app.get("/user", async (req, res) => {
       const users = await userCollections.find({}).toArray();
@@ -101,6 +103,38 @@ async function run() {
         },
       };
       const result = await surveyCollections.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // payment intent
+    app.post("/create_payment_intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payment", async (req, res) => {
+      const payment = req.body;
+      const userEmail = payment.email
+      const user = await userCollections.findOne({email : userEmail})
+      if(user){
+        const updateDoc = {
+          $set : {
+            role : 'pro-user'
+          }
+        }
+        const result = await userCollections.updateOne({email : userEmail}, updateDoc)
+      }
+
+      const result = await paymentCollections.insertOne(payment);
       res.send(result);
     });
 
