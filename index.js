@@ -139,8 +139,27 @@ async function run() {
     });
 
     app.get('/users', async (req, res) => {
-      const users = await userCollections.find().toArray();
+      const role = req.query.role;
+      let query = {};
+      if (role) {
+        query = { role: role };
+      }
+      const users = await userCollections.find(query).toArray();
       res.send(users);
+    })
+    app.put('/updateUserRole', async (req, res) => {
+      const userInfo = req.body;
+      const id = userInfo._id;
+      if(id){
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: userInfo.role,
+          },
+        };
+        const result = await userCollections.updateOne(filter, updateDoc);
+        res.send(result);
+      };
     })
 
     app.get("/user/admin/:email", async (req, res) => {
@@ -152,6 +171,13 @@ async function run() {
         admin = user?.role === "admin";
       }
       res.send({ admin });
+    });
+
+    app.delete("/user/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollections.deleteOne(query);
+      res.send(result);
     });
 
     console.log(
