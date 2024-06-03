@@ -138,6 +138,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/payment', async (req, res) => {
+      const payments = await paymentCollections.find().toArray();
+      res.send(payments);
+    })
+
     app.get('/users', async (req, res) => {
       const role = req.query.role;
       let query = {};
