@@ -178,6 +178,28 @@ async function run() {
       res.send({ admin });
     });
 
+    app.get("/user/surveyor/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollections.findOne(query);
+      let surveyor = false;
+      if (user) {
+        surveyor = user?.role === "surveyor";
+      }
+      res.send({ surveyor });
+    });
+
+    app.get("/user/proUser/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollections.findOne(query);
+      let proUser = false;
+      if (user) {
+        proUser = user?.role === "pro-user";
+      }
+      res.send({ proUser });
+    });
+
     app.delete("/user/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
