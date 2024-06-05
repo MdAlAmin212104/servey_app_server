@@ -193,7 +193,7 @@ async function run() {
   });
   
 
-    app.get('/voting', verifyToken, async (req, res) => {
+    app.get('/voting', async (req, res) => {
       const survey_id = req.query.survey_id;
       let query = {}
       if(survey_id){
@@ -264,7 +264,18 @@ async function run() {
       res.send(result);
     });
 
-    
+    // user url 
+    app.get('/voting/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const voting = await votingCollections.find(query).toArray();
+      const survey_id = voting.map(element => element.survey_id);
+      const ids = survey_id.map(
+        (id) => new ObjectId(id.toString())
+      );
+      const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
+      res.send({voting, survey});
+    })
     
     
 
