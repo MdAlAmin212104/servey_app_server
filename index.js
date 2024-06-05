@@ -170,9 +170,37 @@ async function run() {
 
     app.post('/voting', verifyToken, async (req, res) => {
       const voting = req.body;
-      console.log(voting);
-      const result = await votingCollections.insertOne(voting);
-      res.send(result);
+      const vote = voting.voting;
+      const survey_id = voting.survey_id;
+      let surveyUpdate;
+  
+      if (survey_id) {
+          const filter = {
+              _id: new ObjectId(survey_id)
+          };
+  
+          const surveyList = await surveyCollections.findOne(filter);
+  
+          const update = vote === true ?
+            { $inc: { 'votes.yesVotes': 1 } } :
+            { $inc: { 'votes.noVotes': 1 } };
+  
+        surveyUpdate = await surveyCollections.updateOne(filter, update, { new: true });
+      }
+  
+    const result = await votingCollections.insertOne(voting);
+    res.send({result, surveyUpdate});
+  });
+  
+
+    app.get('/voting', verifyToken, async (req, res) => {
+      const survey_id = req.query.survey_id;
+      let query = {}
+      if(survey_id){
+        query = { survey_id : survey_id};
+      }
+      const voting = await votingCollections.find(query).toArray();
+      res.send(voting);
     })
     
 
@@ -252,15 +280,7 @@ async function run() {
       res.send({ surveyor });
     });
 
-    app.get('/voting', verifyToken, async (req, res) => {
-      const survey_id = req.query.survey_id;
-      let query = {}
-      if(survey_id){
-        query = { survey_id : survey_id};
-      }
-      const voting = await votingCollections.find(query).toArray();
-      res.send(voting);
-    })
+    
 
 
     // get proUser user profile
