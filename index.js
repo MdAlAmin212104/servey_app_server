@@ -32,6 +32,7 @@ async function run() {
     const userCollections = client.db("survey").collection("users");
     const surveyCollections = client.db("survey").collection("surveyList");
     const paymentCollections = client.db("survey").collection("payments");
+    const votingCollections = client.db("survey").collection("voting");
 
 
     // jwt token create
@@ -166,6 +167,13 @@ async function run() {
       };
     })
 
+
+    app.post('/voting', verifyToken, async (req, res) => {
+      const voting = req.body;
+      console.log(voting);
+      const result = await votingCollections.insertOne(voting);
+      res.send(result);
+    })
     
 
     app.get("/survey", async (req, res) => {
@@ -243,6 +251,16 @@ async function run() {
       }
       res.send({ surveyor });
     });
+
+    app.get('/voting', verifyToken, async (req, res) => {
+      const survey_id = req.query.survey_id;
+      let query = {}
+      if(survey_id){
+        query = { survey_id : survey_id};
+      }
+      const voting = await votingCollections.find(query).toArray();
+      res.send(voting);
+    })
 
 
     // get proUser user profile
