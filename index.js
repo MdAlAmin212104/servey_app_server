@@ -33,6 +33,7 @@ async function run() {
     const surveyCollections = client.db("survey").collection("surveyList");
     const paymentCollections = client.db("survey").collection("payments");
     const votingCollections = client.db("survey").collection("voting");
+    const reportCollections = client.db("survey").collection("report");
 
 
     // jwt token create
@@ -277,6 +278,28 @@ async function run() {
       res.send({voting, survey});
     })
     
+    app.post('/report', verifyToken, async (req, res) => {
+      const report = req.body;
+      const result = await reportCollections.insertOne(report);
+      res.send(result);
+    })
+
+    app.get('/report', verifyToken, async (req, res) => {
+      const email = req.query.email;
+      let query = {};
+      if(email){
+        query = { reporterEmail : email};
+      }
+      const report = await reportCollections.find(query).toArray();
+      //console.log(report);
+      const survey_id = report.map(element => element.id);
+      const ids = survey_id.map(
+        (id) => new ObjectId(id.toString())
+      );
+      const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
+
+      res.send({report, survey});
+    })
     
 
     // get surveyor user profile
