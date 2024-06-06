@@ -35,6 +35,7 @@ async function run() {
     const votingCollections = client.db("survey").collection("voting");
     const reportCollections = client.db("survey").collection("report");
     const commentCollections = client.db("survey").collection("comment");
+    const feedbackCollections = client.db("survey").collection("feedback");
 
 
     // jwt token create
@@ -281,6 +282,21 @@ async function run() {
       res.send(result);
     });
 
+
+    app.patch('/statusUpdate/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: "unpublished",
+        },
+      };
+      const result = await surveyCollections.updateOne(query, updateDoc);
+      res.send(result);
+    })
+
+
     // user url 
     app.get('/voting/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
@@ -307,7 +323,6 @@ async function run() {
         query = { reporterEmail : email};
       }
       const report = await reportCollections.find(query).toArray();
-      //console.log(report);
       const survey_id = report.map(element => element.id);
       const ids = survey_id.map(
         (id) => new ObjectId(id.toString())
@@ -353,6 +368,27 @@ async function run() {
       }
       res.send({ surveyor });
     });
+
+    app.post('/feedback', verifyToken, async (req, res) => {
+      const feedback = req.body;
+      const result = await feedbackCollections.insertOne(feedback);
+      res.send(result);
+    })
+
+    app.get('/feedback', async (req, res) => {
+      const email = req.query.email;
+      let query = {};
+      if(email){
+        query = { surveyEmail : email };
+      }
+      const feedback = await feedbackCollections.find(query).toArray();
+      const survey_id = feedback.map(element => element.survey_id);
+      const ids = survey_id.map(
+        (id) => new ObjectId(id.toString())
+      );
+      const findSurvey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
+      res.send({feedback, findSurvey});
+    })
 
     
 
