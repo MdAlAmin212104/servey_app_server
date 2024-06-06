@@ -34,6 +34,7 @@ async function run() {
     const paymentCollections = client.db("survey").collection("payments");
     const votingCollections = client.db("survey").collection("voting");
     const reportCollections = client.db("survey").collection("report");
+    const commentCollections = client.db("survey").collection("comment");
 
 
     // jwt token create
@@ -299,6 +300,30 @@ async function run() {
       const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
 
       res.send({report, survey});
+    })
+
+    app.post('/comment', verifyToken, async (req, res) => {
+      const comment = req.body;
+      console.log(comment);
+      const result = await commentCollections.insertOne(comment);
+      res.send(result);
+    })
+
+    app.get('/comment', async (req, res) => {
+      const email = req.query.email;
+      //console.log(email);
+      let query = {};
+      if(email){
+        query = { commentEmail : email};
+      }
+      const comment = await commentCollections.find(query).toArray();
+      const survey_id = comment.map(element => element.survey_id);
+      const ids = survey_id.map(
+        (id) => new ObjectId(id.toString())
+      );
+      const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
+      //console.log(survey);
+      res.send({comment, survey});
     })
     
 
