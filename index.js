@@ -213,7 +213,22 @@ async function run() {
         query = { surveyEmail: email };
       }
       const result = await surveyCollections.find(query).toArray();
-      res.send(result);
+      const pipeline = [
+        {
+          $addFields: {
+            totalVotes: { $add: ['$votes.yesVotes', '$votes.noVotes'] }
+          }
+        },
+        {
+          $sort: { totalVotes: -1 }
+        },
+        {
+          $limit: 6
+        }
+      ];
+      const MostVotingSurvey = await surveyCollections.aggregate(pipeline).toArray();
+      const recentSurveys = await surveyCollections.find().sort({ timestamp: -1 }).limit(6).toArray();
+      res.send({result, MostVotingSurvey, recentSurveys});
     });
 
     app.post("/survey", verifyToken, async (req, res) => {
@@ -309,7 +324,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/comment', async (req, res) => {
+    app.get('/comment', verifyToken, async (req, res) => {
       const email = req.query.email;
       //console.log(email);
       let query = {};
