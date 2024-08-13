@@ -79,7 +79,7 @@ async function run() {
     // admin operation in backend
 
     // get admin user profile
-    app.post("/user", verifyToken, async (req, res) => {
+    app.post("/user", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
       const isExist = await userCollections.findOne(query);
