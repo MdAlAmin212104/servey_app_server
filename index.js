@@ -238,16 +238,18 @@ async function run() {
     });
 
     app.get("/survey/count", async (req, res) => {
-      const allSurvey = await surveyCollections.find().toArray();
-      const categoryCounts = allSurvey.reduce((acc, survey) => {
-        if (acc[survey.category]) {
-          acc[survey.category]++;
-        } else {
-          acc[survey.category] = 1;
-        }
-        return acc;
-      }, {});
-      res.json(categoryCounts);
+      try {
+        const allSurvey = await surveyCollections.find().toArray();
+
+        const categoryCounts = allSurvey.reduce((acc, survey) => {
+            acc[survey.category] = (acc[survey.category] || 0) + 1;
+            return acc;
+        }, {});
+        res.json(categoryCounts);
+    } catch (error) {
+        console.error('Error fetching survey data:', error);
+        res.status(500).json({ message: 'Server error', error });
+    }
     });
 
     app.post("/survey", verifyToken, async (req, res) => {
