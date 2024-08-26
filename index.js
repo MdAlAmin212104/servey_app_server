@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -37,7 +37,6 @@ async function run() {
     const commentCollections = client.db("survey").collection("comment");
     const feedbackCollections = client.db("survey").collection("feedback");
 
-
     // jwt token create
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -47,7 +46,7 @@ async function run() {
       res.send({ token });
     });
 
-    // middleware 
+    // middleware
 
     const verifyToken = (req, res, next) => {
       //console.log('insert the token',req.headers)
@@ -88,7 +87,6 @@ async function run() {
       res.send(result);
     });
 
-
     app.get("/user/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -99,8 +97,8 @@ async function run() {
       }
       res.send({ admin });
     });
-    
-    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       //console.log(req.headers.authorization);
       const role = req.query.role;
       let query = {};
@@ -109,9 +107,9 @@ async function run() {
       }
       const users = await userCollections.find(query).toArray();
       res.send(users);
-    })
+    });
 
-    app.delete("/user/:id",verifyToken, verifyAdmin, async (req, res) => {
+    app.delete("/user/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollections.deleteOne(query);
@@ -135,30 +133,31 @@ async function run() {
 
     app.post("/payment", verifyToken, async (req, res) => {
       const payment = req.body;
-      const userEmail = payment.email
-      const user = await userCollections.findOne({email : userEmail})
-      if(user){
+      const userEmail = payment.email;
+      const user = await userCollections.findOne({ email: userEmail });
+      if (user) {
         const updateDoc = {
-          $set : {
-            role : 'pro-user'
-          }
-        }
-        const userUpdate = await userCollections.updateOne({email : userEmail}, updateDoc)
-        res.send(userUpdate)
-        
+          $set: {
+            role: "pro-user",
+          },
+        };
+        const userUpdate = await userCollections.updateOne(
+          { email: userEmail },
+          updateDoc
+        );
+        res.send(userUpdate);
       }
-
     });
 
-    app.get('/payment', async (req, res) => {
+    app.get("/payment", async (req, res) => {
       const payments = await paymentCollections.find().toArray();
       res.send(payments);
-    })
+    });
 
-    app.put('/updateUserRole', verifyToken, async (req, res) => {
+    app.put("/updateUserRole", verifyToken, async (req, res) => {
       const userInfo = req.body;
       const id = userInfo._id;
-      if(id){
+      if (id) {
         const filter = { _id: new ObjectId(id) };
         const updateDoc = {
           $set: {
@@ -167,45 +166,45 @@ async function run() {
         };
         const result = await userCollections.updateOne(filter, updateDoc);
         res.send(result);
-      };
-    })
+      }
+    });
 
-
-    app.post('/voting', verifyToken, async (req, res) => {
+    app.post("/voting", verifyToken, async (req, res) => {
       const voting = req.body;
       const vote = voting.voting;
       const survey_id = voting.survey_id;
       let surveyUpdate;
-  
-      if (survey_id) {
-          const filter = {
-              _id: new ObjectId(survey_id)
-          };
-  
-          const surveyList = await surveyCollections.findOne(filter);
-  
-          const update = vote === true ?
-            { $inc: { 'votes.yesVotes': 1 } } :
-            { $inc: { 'votes.noVotes': 1 } };
-  
-        surveyUpdate = await surveyCollections.updateOne(filter, update, { new: true });
-      }
-  
-    const result = await votingCollections.insertOne(voting);
-    res.send({result, surveyUpdate});
-  });
-  
 
-    app.get('/voting', async (req, res) => {
+      if (survey_id) {
+        const filter = {
+          _id: new ObjectId(survey_id),
+        };
+
+        const surveyList = await surveyCollections.findOne(filter);
+
+        const update =
+          vote === true
+            ? { $inc: { "votes.yesVotes": 1 } }
+            : { $inc: { "votes.noVotes": 1 } };
+
+        surveyUpdate = await surveyCollections.updateOne(filter, update, {
+          new: true,
+        });
+      }
+
+      const result = await votingCollections.insertOne(voting);
+      res.send({ result, surveyUpdate });
+    });
+
+    app.get("/voting", async (req, res) => {
       const survey_id = req.query.survey_id;
-      let query = {}
-      if(survey_id){
-        query = { survey_id : survey_id};
+      let query = {};
+      if (survey_id) {
+        query = { survey_id: survey_id };
       }
       const voting = await votingCollections.find(query).toArray();
       res.send(voting);
-    })
-    
+    });
 
     app.get("/survey", async (req, res) => {
       const email = req.query.email;
@@ -217,19 +216,38 @@ async function run() {
       const pipeline = [
         {
           $addFields: {
-            totalVotes: { $add: ['$votes.yesVotes', '$votes.noVotes'] }
-          }
+            totalVotes: { $add: ["$votes.yesVotes", "$votes.noVotes"] },
+          },
         },
         {
-          $sort: { totalVotes: -1 }
+          $sort: { totalVotes: -1 },
         },
         {
-          $limit: 6
-        }
+          $limit: 6,
+        },
       ];
-      const MostVotingSurvey = await surveyCollections.aggregate(pipeline).toArray();
-      const recentSurveys = await surveyCollections.find().sort({ timestamp: -1 }).limit(6).toArray();
-      res.send({result, MostVotingSurvey, recentSurveys});
+      const MostVotingSurvey = await surveyCollections
+        .aggregate(pipeline)
+        .toArray();
+      const recentSurveys = await surveyCollections
+        .find()
+        .sort({ timestamp: -1 })
+        .limit(6)
+        .toArray();
+      res.send({ result, MostVotingSurvey, recentSurveys });
+    });
+
+    app.get("/survey/count", async (req, res) => {
+      const allSurvey = await surveyCollections.find().toArray();
+      const categoryCounts = allSurvey.reduce((acc, survey) => {
+        if (acc[survey.category]) {
+          acc[survey.category]++;
+        } else {
+          acc[survey.category] = 1;
+        }
+        return acc;
+      }, {});
+      res.json(categoryCounts);
     });
 
     app.post("/survey", verifyToken, async (req, res) => {
@@ -282,8 +300,7 @@ async function run() {
       res.send(result);
     });
 
-
-    app.patch('/statusUpdate/:id', async (req, res) => {
+    app.patch("/statusUpdate/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
       const query = { _id: new ObjectId(id) };
@@ -294,68 +311,66 @@ async function run() {
       };
       const result = await surveyCollections.updateOne(query, updateDoc);
       res.send(result);
-    })
+    });
 
-
-    // user url 
-    app.get('/voting/:email', verifyToken, async (req, res) => {
+    // user url
+    app.get("/voting/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const voting = await votingCollections.find(query).toArray();
-      const survey_id = voting.map(element => element.survey_id);
-      const ids = survey_id.map(
-        (id) => new ObjectId(id.toString())
-      );
-      const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
-      res.send({voting, survey});
-    })
-    
-    app.post('/report', verifyToken, async (req, res) => {
+      const survey_id = voting.map((element) => element.survey_id);
+      const ids = survey_id.map((id) => new ObjectId(id.toString()));
+      const survey = await surveyCollections
+        .find({ _id: { $in: ids } })
+        .toArray();
+      res.send({ voting, survey });
+    });
+
+    app.post("/report", verifyToken, async (req, res) => {
       const report = req.body;
       const result = await reportCollections.insertOne(report);
       res.send(result);
-    })
+    });
 
-    app.get('/report', verifyToken, async (req, res) => {
+    app.get("/report", verifyToken, async (req, res) => {
       const email = req.query.email;
       let query = {};
-      if(email){
-        query = { reporterEmail : email};
+      if (email) {
+        query = { reporterEmail: email };
       }
       const report = await reportCollections.find(query).toArray();
-      const survey_id = report.map(element => element.id);
-      const ids = survey_id.map(
-        (id) => new ObjectId(id.toString())
-      );
-      const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
+      const survey_id = report.map((element) => element.id);
+      const ids = survey_id.map((id) => new ObjectId(id.toString()));
+      const survey = await surveyCollections
+        .find({ _id: { $in: ids } })
+        .toArray();
 
-      res.send({report, survey});
-    })
+      res.send({ report, survey });
+    });
 
-    app.post('/comment', verifyToken, async (req, res) => {
+    app.post("/comment", verifyToken, async (req, res) => {
       const comment = req.body;
       console.log(comment);
       const result = await commentCollections.insertOne(comment);
       res.send(result);
-    })
+    });
 
-    app.get('/comment', verifyToken, async (req, res) => {
+    app.get("/comment", verifyToken, async (req, res) => {
       const email = req.query.email;
       //console.log(email);
       let query = {};
-      if(email){
-        query = { commentEmail : email};
+      if (email) {
+        query = { commentEmail: email };
       }
       const comment = await commentCollections.find(query).toArray();
-      const survey_id = comment.map(element => element.survey_id);
-      const ids = survey_id.map(
-        (id) => new ObjectId(id.toString())
-      );
-      const survey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
+      const survey_id = comment.map((element) => element.survey_id);
+      const ids = survey_id.map((id) => new ObjectId(id.toString()));
+      const survey = await surveyCollections
+        .find({ _id: { $in: ids } })
+        .toArray();
       //console.log(survey);
-      res.send({comment, survey});
-    })
-    
+      res.send({ comment, survey });
+    });
 
     // get surveyor user profile
     app.get("/user/surveyor/:email", async (req, res) => {
@@ -369,29 +384,26 @@ async function run() {
       res.send({ surveyor });
     });
 
-    app.post('/feedback', verifyToken, async (req, res) => {
+    app.post("/feedback", verifyToken, async (req, res) => {
       const feedback = req.body;
       const result = await feedbackCollections.insertOne(feedback);
       res.send(result);
-    })
+    });
 
-    app.get('/feedback', async (req, res) => {
+    app.get("/feedback", async (req, res) => {
       const email = req.query.email;
       let query = {};
-      if(email){
-        query = { surveyEmail : email };
+      if (email) {
+        query = { surveyEmail: email };
       }
       const feedback = await feedbackCollections.find(query).toArray();
-      const survey_id = feedback.map(element => element.survey_id);
-      const ids = survey_id.map(
-        (id) => new ObjectId(id.toString())
-      );
-      const findSurvey = await surveyCollections.find({ _id: { $in: ids } }).toArray();
-      res.send({feedback, findSurvey});
-    })
-
-    
-
+      const survey_id = feedback.map((element) => element.survey_id);
+      const ids = survey_id.map((id) => new ObjectId(id.toString()));
+      const findSurvey = await surveyCollections
+        .find({ _id: { $in: ids } })
+        .toArray();
+      res.send({ feedback, findSurvey });
+    });
 
     // get proUser user profile
     app.get("/user/proUser/:email", async (req, res) => {
@@ -404,8 +416,6 @@ async function run() {
       }
       res.send({ proUser });
     });
-
-    
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
